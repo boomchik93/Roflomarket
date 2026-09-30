@@ -6,7 +6,7 @@
 
 - `apps/web` — интерфейс. React, Vite, TypeScript.
 - `apps/gateway` — API для клиента. Node.js, Fastify, TypeScript. Auth, REST, WebSocket, профили, CRUD рынков, комментарии.
-- `services/engine` — ядро рынка. Go. Ledger, AMM, сделки, расчёт рынков.
+- `apps/engine` — ядро рынка. Go. Ledger, AMM, сделки, расчёт рынков.
 - `packages/contracts` — protobuf-контракт gateway ↔ engine и сгенерированный код для TS и Go.
 - `infra` — Docker Compose, Caddy, скрипт выкладки.
 - `docs/spec.md` — правила рынка, формулы, инварианты. Читай перед любой задачей, которая касается денег или цен.
@@ -37,7 +37,7 @@ npm run lint -w apps/web          # так же: typecheck, test, build; так 
 docker compose -f infra/docker-compose.yml up -d   # локальный Postgres
 ```
 
-Go-сервис, из `services/engine`:
+Go-сервис, из `apps/engine`:
 
 ```bash
 go vet ./...

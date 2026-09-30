@@ -24,7 +24,7 @@
 
 ## Команды
 
-Из `services/engine`:
+Из `apps/engine`:
 
 ```bash
 go build ./...
