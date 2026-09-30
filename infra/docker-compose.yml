@@ -1,0 +1,22 @@
+# Local development: Postgres only. Services run on the host.
+name: roflomarket-dev
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: roflo
+      POSTGRES_PASSWORD: roflo
+      POSTGRES_DB: roflo
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roflo -d roflo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

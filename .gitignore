@@ -8,3 +8,7 @@ build/
 .DS_Store
 .vscode/
 .idea/
+coverage/
+.claude/settings.local.json
+.claude/worktrees/
+.playwright-mcp/

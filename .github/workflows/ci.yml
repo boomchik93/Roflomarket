@@ -1,0 +1,168 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    # A service job runs only when its files changed and its manifest exists,
+    # so docs-only directories (before the service is scaffolded) do not fail CI.
+    outputs:
+      web: ${{ steps.filter.outputs.web == 'true' && steps.exists.outputs.web == 'true' }}
+      gateway: ${{ steps.filter.outputs.gateway == 'true' && steps.exists.outputs.gateway == 'true' }}
+      engine: ${{ steps.filter.outputs.engine == 'true' && steps.exists.outputs.engine == 'true' }}
+      contracts: ${{ steps.filter.outputs.contracts == 'true' && steps.exists.outputs.contracts == 'true' }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Detect scaffolded services
+        id: exists
+        run: |
+          has() { [ -f "$1" ] && echo true || echo false; }
+          {
+            echo "web=$(has apps/web/package.json)"
+            echo "gateway=$(has apps/gateway/package.json)"
+            echo "engine=$(has services/engine/go.mod)"
+            echo "contracts=$(has packages/contracts/buf.yaml)"
+          } >> "$GITHUB_OUTPUT"
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'apps/web/**'
+              - 'packages/contracts/**'
+              - 'package.json'
+              - 'package-lock.json'
+            gateway:
+              - 'apps/gateway/**'
+              - 'packages/contracts/**'
+              - 'package.json'
+              - 'package-lock.json'
+            engine:
+              - 'services/engine/**'
+              - 'packages/contracts/**'
+            contracts:
+              - 'packages/contracts/**'
+
+  web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint -w apps/web
+      - run: npm run typecheck -w apps/web
+      - run: npm test -w apps/web
+      - run: npm run build -w apps/web
+
+  gateway:
+    needs: changes
+    if: needs.changes.outputs.gateway == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: roflo
+          POSTGRES_PASSWORD: roflo
+          POSTGRES_DB: roflo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U roflo -d roflo_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://roflo:roflo@localhost:5432/roflo_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint -w apps/gateway
+      - run: npm run typecheck -w apps/gateway
+      - run: npm test -w apps/gateway
+      - run: npm run build -w apps/gateway
+
+  engine:
+    needs: changes
+    if: needs.changes.outputs.engine == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: roflo
+          POSTGRES_PASSWORD: roflo
+          POSTGRES_DB: roflo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U roflo -d roflo_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://roflo:roflo@localhost:5432/roflo_test?sslmode=disable
+    defaults:
+      run:
+        working-directory: services/engine
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: services/engine/go.mod
+          cache-dependency-path: services/engine/go.sum
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          working-directory: services/engine
+      - run: go test -race ./...
+
+  contracts:
+    needs: changes
+    if: needs.changes.outputs.contracts == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Runs buf build, lint, format check and, on pull requests, breaking-change detection against the base branch.
+      - uses: bufbuild/buf-action@v1
+        with:
+          input: packages/contracts
+          push: false
+          pr_comment: false
+      - name: Generated code is up to date
+        working-directory: packages/contracts
+        run: |
+          buf generate
+          git diff --exit-code
+
+  # Single required status check for branch protection: skipped jobs count as passed.
+  ci-ok:
+    if: always()
+    needs: [changes, web, gateway, engine, contracts]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
