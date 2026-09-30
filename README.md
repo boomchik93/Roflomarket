@@ -8,7 +8,7 @@
 | --- | --- |
 | `apps/web` | Интерфейс: React, Vite, TypeScript |
 | `apps/gateway` | API для клиента: Node.js, Fastify |
-| `services/engine` | Ядро рынка: Go |
+| `apps/engine` | Ядро рынка: Go |
 | `packages/contracts` | Protobuf-контракт gateway ↔ engine |
 | `infra` | Docker Compose, Caddy, выкладка |
 | `docs` | Спецификация рынка и архитектурные решения |

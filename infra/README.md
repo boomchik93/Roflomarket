@@ -13,7 +13,7 @@
 
 Выкладка рассчитывает на следующее. Пока этого нет, релиз упадёт.
 
-- `apps/web/Dockerfile`, `apps/gateway/Dockerfile`, `services/engine/Dockerfile`. Контекст сборки — корень репозитория.
+- `apps/web/Dockerfile`, `apps/gateway/Dockerfile`, `apps/engine/Dockerfile`. Контекст сборки — корень репозитория.
 - В каждом Dockerfile есть `HEALTHCHECK`.
 - web отдаёт статику на порту 80. gateway слушает 3000, engine — 8080.
 - gateway и engine отвечают на `GET /healthz`.

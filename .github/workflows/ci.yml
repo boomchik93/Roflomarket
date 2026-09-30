@@ -34,7 +34,7 @@ jobs:
           {
             echo "web=$(has apps/web/package.json)"
             echo "gateway=$(has apps/gateway/package.json)"
-            echo "engine=$(has services/engine/go.mod)"
+            echo "engine=$(has apps/engine/go.mod)"
             echo "contracts=$(has packages/contracts/buf.yaml)"
           } >> "$GITHUB_OUTPUT"
       - uses: dorny/paths-filter@v4
@@ -52,7 +52,7 @@ jobs:
               - 'package.json'
               - 'package-lock.json'
             engine:
-              - 'services/engine/**'
+              - 'apps/engine/**'
               - 'packages/contracts/**'
             contracts:
               - 'packages/contracts/**'
@@ -127,16 +127,16 @@ jobs:
       DATABASE_URL: postgres://roflo:roflo@localhost:5432/roflo_test?sslmode=disable
     defaults:
       run:
-        working-directory: services/engine
+        working-directory: apps/engine
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version-file: services/engine/go.mod
-          cache-dependency-path: services/engine/go.sum
+          go-version-file: apps/engine/go.mod
+          cache-dependency-path: apps/engine/go.sum
       - uses: golangci/golangci-lint-action@v9
         with:
-          working-directory: services/engine
+          working-directory: apps/engine
       - run: go test -race ./...
 
   contracts:
